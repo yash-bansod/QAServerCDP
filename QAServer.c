@@ -9,12 +9,57 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <errno.h>
 
 #define MAXIN 100
 #define MAXOUT 100
 #define MAXREQ 100
-#define MAXQUEUE 5
+#define MAXQUEUE 10
 
+//Questions
+int printRandom(int upper) {
+	int num = (rand() % upper);
+	return num;
+}
+struct question {
+	char q[100];
+	int a;
+	char desc[100];
+};
+
+struct questiontype {
+	struct question qs[10];
+	int qnum;
+};
+
+struct questiontype qtable[3];
+
+void makeTable() {
+	qtable[0].qnum=2;
+	qtable[1].qnum=2;
+	qtable[2].qnum=2;
+	strcpy(qtable[0].qs[0].q, "This is q1, select 1 2 3");
+	strcpy(qtable[0].qs[1].q, "This is q2, select 1 2 3");
+	strcpy(qtable[1].qs[0].q, "This is q1, select 1 2 3");
+	strcpy(qtable[1].qs[1].q, "This is q2, select 1 2 3");
+	strcpy(qtable[2].qs[0].q, "This is q1, select 1 2 3");
+	strcpy(qtable[2].qs[1].q, "This is q2, select 1 2 3");
+	qtable[0].qs[0].a = 1;
+	qtable[0].qs[1].a = 2;
+	qtable[1].qs[0].a = 2;
+	qtable[1].qs[1].a = 1;
+	qtable[2].qs[0].a = 1;
+	qtable[2].qs[1].a = 2;
+	strcpy(qtable[0].qs[0].desc, "This is q1, description");
+	strcpy(qtable[0].qs[1].desc, "This is q2, description");
+	strcpy(qtable[1].qs[0].desc, "This is q1, description");
+	strcpy(qtable[1].qs[1].desc, "This is q2, description");
+	strcpy(qtable[2].qs[0].desc, "This is q1, description");
+	strcpy(qtable[2].qs[1].desc, "This is q2, description");
+	
+}
+
+//code
 struct userinfo {
 	char username[10];
 	char ip[10];
@@ -79,8 +124,8 @@ void cli(struct userinfo * user, char *inbuf) {
 		strcpy(sndbuf,"Welcome ");
 		strcat(sndbuf,user->username);
 		strcat(sndbuf,"\nSelect Mode:\n1)Individual Mode\n2)Group Mode\n3)Admin Mode");
-		user->mode = 0;
 		client(sockfd,sndbuf);
+		user->mode = 0;
 		printf("Mode: %d\n",user->mode);
 	}
 	else if(user->mode == 0) {
@@ -105,35 +150,53 @@ void cli(struct userinfo * user, char *inbuf) {
 	else if(user->mode == 1) {
 		printf("Mode: %d\n",user->mode);
 		user->mode = 2;
-		if(inbuf[9] == '1') {
-			user->qtype = 0;
-			//Draw question from type 1
-			//set qno
-			strcpy(sndbuf, "Question:\n");
-			// Display question with 1,2,3,4 choices
-			client(sockfd,sndbuf);
-		}
-		else if(inbuf[9] == '2') {
-			user->qtype = 1;
-			//Draw question from type 1
-			strcpy(sndbuf, "Question:\n");
-			// Display question with 1,2,3,4 choices
-			client(sockfd,sndbuf);
-		}
+		user->qtype = inbuf[9] - '0';
+		//Draw question from type 1
+		int num = printRandom(qtable[user->qtype].qnum);
+		user->qno = num;
+		//set qno
+		strcpy(sndbuf, "Question:\n");
+		// Display question with 1,2,3,4 choices
+		strcat(sndbuf, qtable[user->qtype].qs[num].q);
+		client(sockfd,sndbuf);
 		printf("Mode: %d\n",user->mode);
 	}
 	else if(user->mode == 2) {
 		printf("Mode: %d\n",user->mode);
-		if(inbuf[9] == '1') {
-			//check qno.answer equals 1
-			strcpy(sndbuf, "Answer:\n");
-			//show answer
-			user->mode = 1; // and clear qno
+		int ans = inbuf[9] - '0';
+		if(ans == qtable[user->qtype].qs[user->qno].a) {
+			strcpy(sndbuf, "Correct ");
+		}
+		else {
+			strcpy(sndbuf, "Wrong ");
+		}
+		//check qno.answer equals 1
+		strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
+		client(sockfd, sndbuf);
+		user->mode = 3;
+		strcpy(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
+		//show answer
+		//user->mode = 1; // and clear qno
+		//strcpy(sndbuf, "Select type of question\n");
+		//strcat(sndbuf, "1) 2) 3)..\n");
+		client(sockfd, sndbuf);
+		printf("Mode: %d\n",user->mode);
+	}
+	else if(user->mode == 3) {
+		if(inbuf[9] == 'n') {
+			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
 			strcat(sndbuf, "1) 2) 3)..\n");
 			client(sockfd, sndbuf);
 		}
-		printf("Mode: %d\n",user->mode);
+		else if(inbuf[9] == 'r') {
+			user->mode = -1;
+			strcpy(sndbuf, "returning to main menu\nPRESS ENTER TO CONTINUE\n");
+		client(sockfd,sndbuf);
+		}
+		else if(inbuf[9] == 'q') {
+			//
+		}
 	}
 
 
@@ -185,7 +248,7 @@ void server(int consockfd, char* ipa) {
 }
 
 int main() {
-
+	makeTable();
 int lstnsockfd, portno = 5000;
 struct sockaddr_in serv_addr;
 
@@ -207,7 +270,7 @@ while (1) {
 
 /* Listen for incoming connections */
    if(listen(lstnsockfd, MAXQUEUE)!=0) {
-	   printf("listen failed\n");
+	   printf("error:%s\n",errno);
    } 
 
    //clilen = sizeof(cl_addr);
@@ -216,7 +279,7 @@ while (1) {
 	int clilen;
 	int consockfd = accept(lstnsockfd, (struct sockaddr *) &cli_addr,&clilen);
 	if(consockfd<0) {
-	   printf("accept failed\n");
+	   printf("error:%s\n",errno);
 	}
 	else { 
 		printf("Accepted connection\n");

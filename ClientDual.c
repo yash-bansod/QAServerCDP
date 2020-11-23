@@ -13,7 +13,7 @@
 #define MAXIN 100
 #define MAXOUT 100
 #define MAXREQ 100
-#define MAXQUEUE 5
+#define MAXQUEUE 10
 
 void server(int consockfd) {
   char reqbuf[MAXREQ];
