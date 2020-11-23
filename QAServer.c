@@ -196,7 +196,8 @@ void cli(struct userinfo * user, char *inbuf) {
 		client(sockfd,sndbuf);
 		}
 		else if(inbuf[9] == 'q') {
-			//
+			strcpy(sndbuf, "<EXIT>");
+			client(sockfd, sndbuf);
 		}
 	}
 
