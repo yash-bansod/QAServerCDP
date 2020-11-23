@@ -1,3 +1,3 @@
 #!/bin/bash
-gcc -o ClientDual ClientDual.c -lpthread
-gcc -o QAServer QAServer.c -lpthread
+gcc -o ClientDual.out ClientDual.c -lpthread
+gcc -o QAServer.out QAServer.c -lpthread
