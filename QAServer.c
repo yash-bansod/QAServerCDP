@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -9,15 +10,16 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define MAXIN 40
-#define MAXOUT 40
-#define MAXREQ 40
+#define MAXIN 100
+#define MAXOUT 100
+#define MAXREQ 100
 #define MAXQUEUE 5
 
 struct userinfo {
 	char username[10];
 	char ip[10];
-	int mode;
+	bool isgrp;
+	int mode;		//-1:nil
 	int qtype;
 	int qno;
 };
@@ -55,9 +57,9 @@ struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,
  }
 
 
-void cli(struct userinfo user) {
+void cli(struct userinfo * user, char *inbuf) {
 	//Client protocol
-	char *serverIP = user.ip;
+	char *serverIP = user->ip;
 	int sockfd, portno = 6000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
@@ -71,12 +73,69 @@ void cli(struct userinfo user) {
 	/* Carry out Client-Server protocol */
 	char sndbuf[100];
 	memset(sndbuf,0,100);
-	if(user.mode==-1) {
+	printf("Username: %s\nip: %s\nLength: %d\nInput: %c\n",user->username, user->ip, inbuf[8], inbuf[9]);
+	if(user->mode == -1) {
+		printf("Mode: %d\n",user->mode);
 		strcpy(sndbuf,"Welcome ");
-		strcat(sndbuf,user.username);
+		strcat(sndbuf,user->username);
 		strcat(sndbuf,"\nSelect Mode:\n1)Individual Mode\n2)Group Mode\n3)Admin Mode");
+		user->mode = 0;
 		client(sockfd,sndbuf);
+		printf("Mode: %d\n",user->mode);
 	}
+	else if(user->mode == 0) {
+		printf("Mode: %d\n",user->mode);
+		if(inbuf[9] == '1') {
+			user->mode = 1;
+			strcpy(sndbuf, "Select type of question\n");
+			strcat(sndbuf, "1) 2) 3)..");
+			client(sockfd,sndbuf);
+		}
+		else if(inbuf[9] == '2') {
+			strcpy(sndbuf, "Select teammate\n");
+			strcat(sndbuf, "1) 2) 3)..");
+			client(sockfd,sndbuf);
+			user->isgrp = true;
+		}
+		else {
+			//admin
+		}
+		printf("Mode: %d\n",user->mode);
+	}
+	else if(user->mode == 1) {
+		printf("Mode: %d\n",user->mode);
+		user->mode = 2;
+		if(inbuf[9] == '1') {
+			user->qtype = 0;
+			//Draw question from type 1
+			//set qno
+			strcpy(sndbuf, "Question:\n");
+			// Display question with 1,2,3,4 choices
+			client(sockfd,sndbuf);
+		}
+		else if(inbuf[9] == '2') {
+			user->qtype = 1;
+			//Draw question from type 1
+			strcpy(sndbuf, "Question:\n");
+			// Display question with 1,2,3,4 choices
+			client(sockfd,sndbuf);
+		}
+		printf("Mode: %d\n",user->mode);
+	}
+	else if(user->mode == 2) {
+		printf("Mode: %d\n",user->mode);
+		if(inbuf[9] == '1') {
+			//check qno.answer equals 1
+			strcpy(sndbuf, "Answer:\n");
+			//show answer
+			user->mode = 1; // and clear qno
+			strcpy(sndbuf, "Select type of question\n");
+			strcat(sndbuf, "1) 2) 3)..\n");
+			client(sockfd, sndbuf);
+		}
+		printf("Mode: %d\n",user->mode);
+	}
+
 
 	/* Clean up on termination */
 	close(sockfd);
@@ -90,16 +149,35 @@ void server(int consockfd, char* ipa) {
     n = read(consockfd,reqbuf,MAXREQ-1); /* Recv */
     printf("Recvd msg:%s\n", reqbuf);
 	if(numusers==0) {
-		strcpy(users[numusers].username,reqbuf);
+		strncpy(users[numusers].username,reqbuf,7);
 		strcpy(users[numusers].ip,ipa);
+		users[numusers].isgrp = false;
 		users[numusers].mode = -1;
 		users[numusers].qtype = -1;
 		users[numusers].qno = -1;
-		cli(users[numusers]);
+		cli(&users[numusers], reqbuf);
 		numusers++;
 	}
 	else {
-		
+		int index=0;
+		int found=0;
+		for(int i=0;i<numusers;i++) {
+			if(strcmp(users[i].ip, ipa) == 0) {
+				found=1;
+				printf("found\t%d\n",users[i].mode);
+				cli(&users[i], reqbuf);
+				break;
+			}
+		}
+		if(found == 0) {
+			strncpy(users[numusers].username,reqbuf,7);
+			strcpy(users[numusers].ip,ipa);
+			users[numusers].mode = -1;
+			users[numusers].qtype = -1;
+			users[numusers].qno = -1;
+			cli(&users[numusers], reqbuf);
+			numusers++;
+		}
 	}
     if (n <= 0) return;
     //n = write(consockfd, reqbuf, strlen(reqbuf)); /* echo*/
