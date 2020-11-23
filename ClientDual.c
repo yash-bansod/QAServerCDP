@@ -10,9 +10,9 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define MAXIN 100
-#define MAXOUT 100
-#define MAXREQ 100
+#define MAXIN 300
+#define MAXOUT 300
+#define MAXREQ 300
 #define MAXQUEUE 10
 
 void server(int consockfd) {

@@ -11,9 +11,9 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define MAXIN 100
-#define MAXOUT 100
-#define MAXREQ 100
+#define MAXIN 300
+#define MAXOUT 300
+#define MAXREQ 300
 #define MAXQUEUE 10
 
 //Questions
@@ -22,9 +22,9 @@ int printRandom(int upper) {
 	return num;
 }
 struct question {
-	char q[100];
+	char q[300];
 	int a;
-	char desc[100];
+	char desc[300];
 };
 
 struct questiontype {
@@ -32,30 +32,31 @@ struct questiontype {
 	int qnum;
 };
 
-struct questiontype qtable[3];
+struct questiontype qtable[4];
 
 void makeTable() {
 	qtable[0].qnum=2;
-	qtable[1].qnum=2;
+	qtable[1].qnum=1;
 	qtable[2].qnum=2;
-	strcpy(qtable[0].qs[0].q, "This is q1, select 1 2 3");
-	strcpy(qtable[0].qs[1].q, "This is q2, select 1 2 3");
-	strcpy(qtable[1].qs[0].q, "This is q1, select 1 2 3");
-	strcpy(qtable[1].qs[1].q, "This is q2, select 1 2 3");
-	strcpy(qtable[2].qs[0].q, "This is q1, select 1 2 3");
-	strcpy(qtable[2].qs[1].q, "This is q2, select 1 2 3");
-	qtable[0].qs[0].a = 1;
-	qtable[0].qs[1].a = 2;
-	qtable[1].qs[0].a = 2;
-	qtable[1].qs[1].a = 1;
-	qtable[2].qs[0].a = 1;
-	qtable[2].qs[1].a = 2;
-	strcpy(qtable[0].qs[0].desc, "This is q1, description");
-	strcpy(qtable[0].qs[1].desc, "This is q2, description");
-	strcpy(qtable[1].qs[0].desc, "This is q1, description");
-	strcpy(qtable[1].qs[1].desc, "This is q2, description");
-	strcpy(qtable[2].qs[0].desc, "This is q1, description");
-	strcpy(qtable[2].qs[1].desc, "This is q2, description");
+	qtable[3].qnum=1;
+	strcpy(qtable[0].qs[0].q, "which of the following signals cannot be caught or ignored?1)SIGSEGV 2)SIGQUIT 3)SIGSTOP 4)SIGINT\n");
+	strcpy(qtable[0].qs[1].q, "If a signal arrives while the process is executing a system call 1) the system call is interrupted 2) signal is ignored 3) signal is held until the system call is completed 4) none of above\n");
+	strcpy(qtable[1].qs[0].q, "To avoid deadlock ____________ 1) there must be a fixed number of resources to allocate, 2) resource allocation must be done only once, 3) all deadlocked processes must be aborted, 4) inversion technique can be used\n");
+	strcpy(qtable[2].qs[0].q, "which of the following is shared among the threads of the same process 1)registers 2)heap 3)stack 4)none of the above\n");
+	strcpy(qtable[2].qs[1].q, "User level threads are ______ than kernel level threads, 1) Faster, 2) Slower, 3) Same speed, to create and manage the users\n");
+	strcpy(qtable[3].qs[0].q, "In hierarchical protection domain also called protection rings, what mode does ring -1 represent? 1) Kernel mode, 2) User Mode, 3) Hypervisor mode, 4) Supervisor Mode\n");
+	qtable[0].qs[0].a = 3;
+	qtable[0].qs[1].a = 3;
+	qtable[1].qs[0].a = 1;
+	qtable[2].qs[0].a = 2;
+	qtable[2].qs[1].a = 1;
+	qtable[3].qs[0].a = 3;
+	strcpy(qtable[0].qs[0].desc, " SIGSTOP stops execution and it cannot be caught or ignored\n");
+	strcpy(qtable[0].qs[1].desc, " system calls are atomic in nature and signal is held at bay until the system call completes after which the signal is delivered\n");
+	strcpy(qtable[1].qs[0].desc, " uncertain number of resources to allocate may result in deadlock\n");
+	strcpy(qtable[2].qs[0].desc, " Heap memory is shared among all the threads, and there are seperate sets of registers and stack for different threads\n");
+	strcpy(qtable[2].qs[1].desc, " Kernel-level threads are slower to create and manage.\n");
+	strcpy(qtable[3].qs[0].desc, " Hypervisor controls hardware access, Ring -1 so that a guest operating system can run Ring 0 operations natively without affecting other guests or the host OS.\n");
 	
 }
 
@@ -116,8 +117,8 @@ void cli(struct userinfo * user, char *inbuf) {
 	connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
 	printf("Connected to %s:%d\n",serverIP, portno);
 	/* Carry out Client-Server protocol */
-	char sndbuf[100];
-	memset(sndbuf,0,100);
+	char sndbuf[300];
+	memset(sndbuf,0,300);
 	printf("Username: %s\nip: %s\nLength: %d\nInput: %c\n",user->username, user->ip, inbuf[8], inbuf[9]);
 	if(user->mode == -1) {
 		printf("Mode: %d\n",user->mode);
@@ -133,7 +134,7 @@ void cli(struct userinfo * user, char *inbuf) {
 		if(inbuf[9] == '1') {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
-			strcat(sndbuf, "1) 2) 3)..");
+			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
 			client(sockfd,sndbuf);
 		}
 		else if(inbuf[9] == '2') {
@@ -186,7 +187,7 @@ void cli(struct userinfo * user, char *inbuf) {
 		if(inbuf[9] == 'n') {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
-			strcat(sndbuf, "1) 2) 3)..\n");
+			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
 			client(sockfd, sndbuf);
 		}
 		else if(inbuf[9] == 'r') {
@@ -251,7 +252,9 @@ int main() {
 	makeTable();
 int lstnsockfd, portno = 5000;
 struct sockaddr_in serv_addr;
-
+struct sockaddr_in cli_addr;
+int clilen;
+int consockfd;
  memset((char *) &serv_addr,0, sizeof(serv_addr));
  serv_addr.sin_family      = AF_INET;
  serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -265,7 +268,6 @@ lstnsockfd = socket(AF_INET, SOCK_STREAM, 0);
 bind(lstnsockfd, (struct sockaddr *)&serv_addr,sizeof(serv_addr));
 printf("Bounded to port\n");
 while (1) {
-	struct sockaddr_in cli_addr;
    printf("Listening for incoming connections\n");
 
 /* Listen for incoming connections */
@@ -273,11 +275,10 @@ while (1) {
 	   printf("error:%s\n",errno);
    } 
 
-   //clilen = sizeof(cl_addr);
+   clilen = sizeof(cli_addr);
 
 /* Accept incoming connection, obtaining a new socket for it */
-	int clilen;
-	int consockfd = accept(lstnsockfd, (struct sockaddr *) &cli_addr,&clilen);
+	consockfd = accept(lstnsockfd, (struct sockaddr *) &cli_addr,&clilen);
 	if(consockfd<0) {
 	   printf("error:%s\n",errno);
 	}
