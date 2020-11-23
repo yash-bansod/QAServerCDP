@@ -50,8 +50,8 @@ struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,
 
 int main() {
 	//Client protocol
-	char *serverIP = "10.8.10.195";
-	int sockfd, portno = 5033;
+	char *serverIP = "0.0.0.0";
+	int sockfd, portno = 5000;
 	struct sockaddr_in serv_addr;
 	
 	buildServerAddr(&serv_addr, serverIP, portno);

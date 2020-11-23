@@ -14,15 +14,15 @@ void server(int consockfd) {
   while (1) {                   
     memset(reqbuf,0, MAXREQ);
     n = read(consockfd,reqbuf,MAXREQ-1); /* Recv */
-    //printf("Recvd msg:%s\n", reqbuf);
+    printf("Recvd msg:%s\n", reqbuf);
     if (n <= 0) return;
-    n = write(consockfd, reqbuf, strlen(reqbuf)); /* echo*/
+    //n = write(consockfd, reqbuf, strlen(reqbuf)); /* echo*/
   }
 }
 
 int main() {
 
-int lstnsockfd, consockfd, clilen, portno = 5033;
+int lstnsockfd, consockfd, clilen, portno = 5000;
 struct sockaddr_in serv_addr, cli_addr;
 
  memset((char *) &serv_addr,0, sizeof(serv_addr));
