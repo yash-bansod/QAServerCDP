@@ -64,6 +64,7 @@ struct userinfo {
 	int qtype;
 	int qno;
 	char tmid[10];
+	int fd;
 };
 struct userinfo users[5];
 int numusers = 0;
@@ -97,6 +98,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 				strcat(sndbuf, ") ");
 				strcat(sndbuf, users[i].username);
 			}
+			strcat(sndbuf, "\n");
 			user->isgrp = true;
 			user->mode = 4;
 		return sndbuf;
@@ -110,7 +112,6 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		printf("Mode: %d\n",user->mode);
 		user->mode = 2;
 		user->qtype = inbuf[9] - '0';
-		printf("kkkk%d\n",qtable[user->qtype].qnum);
 		//Draw question from type 1
 		int num = printRandom(qtable[user->qtype].qnum);
 		user->qno = num;
@@ -162,7 +163,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 	}
 	else if(user->mode == 4) {
 		int t = inbuf[9] - '0';
-		strcpy(user->tmid, users[t].username);
+		strcpy(user->tmid, users[t-1].username);
 		user->mode = 0;
 	}
 
@@ -182,6 +183,7 @@ void server(int consockfd, char* ipa) {
 	if(numusers==0) {
 		strncpy(users[numusers].username,reqbuf,7);
 		strcpy(users[numusers].ip,ipa);
+		users[numusers].fd = consockfd;
 		users[numusers].isgrp = false;
 		users[numusers].mode = -1;
 		users[numusers].qtype = -1;
@@ -196,7 +198,17 @@ void server(int consockfd, char* ipa) {
 			if(strncmp(users[i].username, reqbuf,7) == 0) {
 				found=1;
 				printf("found\t%d\n",users[i].mode);
-			cli(&users[i], reqbuf, sndbuf);
+				cli(&users[i], reqbuf, sndbuf);
+				if(users[i].isgrp) {
+					if(reqbuf[9] == '@') {
+						for(int j = 0; j<numusers;j++) {
+							if(strcmp(users[j].username, users[i].tmid)==0) {
+								write(users[j].fd, reqbuf+9, reqbuf[8]);
+								write(users[j].fd, sndbuf, strlen(sndbuf));
+							}
+						}
+					}
+				}
 				break;
 			}
 		}
