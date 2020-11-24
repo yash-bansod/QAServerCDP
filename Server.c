@@ -165,6 +165,8 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		int t = inbuf[9] - '0';
 		strcpy(user->tmid, users[t-1].username);
 		user->mode = -1;
+		strcpy(sndbuf, user->tmid);
+		strcat(sndbuf, "is your teammate\n");
 		return sndbuf;
 	}
 
