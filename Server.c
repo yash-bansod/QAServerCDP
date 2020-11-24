@@ -91,7 +91,8 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		else if(inbuf[9] == '2') {
 			strcpy(sndbuf, "Select users\n");
 			for(int i=0;i<numusers;i++) {
-				char t = i + '0';
+				char t = i + 1 + '0';
+				strcat(sndbuf, " ");
 				strcat(sndbuf, &t);
 				strcat(sndbuf, ") ");
 				strcat(sndbuf, users[i].username);
