@@ -22,6 +22,9 @@ void server(int consockfd) {
     memset(reqbuf,0, MAXREQ);
     n = read(consockfd,reqbuf,MAXREQ-1); /* Recv */
     printf("%s\n", reqbuf);
+	if(strcmp(reqbuf,"<EXIT>")==0) {
+		exit(0);
+	}
     if (n <= 0) return;
     //n = write(consockfd, reqbuf, strlen(reqbuf)); /* echo*/
   }

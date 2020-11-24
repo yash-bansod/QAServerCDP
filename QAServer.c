@@ -68,6 +68,7 @@ struct userinfo {
 	int mode;		//-1:nil
 	int qtype;
 	int qno;
+	char tmid[10];
 };
 struct userinfo users[5];
 int numusers = 0;
@@ -78,10 +79,40 @@ char *getreq(char *inbuf, int len) {
   memset(inbuf,0,len);          /* clear for good measure */
   return fgets(inbuf,len,stdin); /* read up to a EOL */
 }
+struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,char *serverIP, int portno) {
+  /* Construct an address for remote server */
+  memset((char *) serv_addr, 0, sizeof(struct sockaddr_in));
+  serv_addr->sin_family = AF_INET;
+  inet_aton(serverIP, &(serv_addr->sin_addr));
+  serv_addr->sin_port = htons(portno);
+ }
 
-void client(int sockfd, char* sndbuf) {
+void client(struct userinfo* user,int sockfd,char* inbuf, char* sndbuf) {
   int n;
   write(sockfd, sndbuf, strlen(sndbuf));
+  if(user->isgrp == true) {
+	char *serverIP;
+	for(int i=0;i<numusers;i++) {
+		if(strcmp(users[i].username, user->tmid) == 0) {
+			serverIP = users[i].ip;
+			break;
+		}
+	}
+	int tmsockfd, portno = 6000;
+	struct sockaddr_in serv_addr;
+	buildServerAddr(&serv_addr, serverIP, portno);
+
+	/* Create a TCP socket */
+	tmsockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	/* Connect to server on port */
+	connect(tmsockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	printf("Connected to %s:%d\n",serverIP, portno);
+	write(tmsockfd, sndbuf, strlen(sndbuf));
+	if(inbuf[7] == '1') {
+		write(tmsockfd, inbuf+9, (int)inbuf[8]);
+	}
+  }
   //getreq(sndbuf, MAXIN);        /* prompt */
   //while (strlen(sndbuf) > 0) {
   //  write(sockfd, sndbuf, strlen(sndbuf)); /* send */
@@ -93,14 +124,6 @@ void client(int sockfd, char* sndbuf) {
 }
 
 // Server address
-struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,
-	char *serverIP, int portno) {
-  /* Construct an address for remote server */
-  memset((char *) serv_addr, 0, sizeof(struct sockaddr_in));
-  serv_addr->sin_family = AF_INET;
-  inet_aton(serverIP, &(serv_addr->sin_addr));
-  serv_addr->sin_port = htons(portno);
- }
 
 
 void cli(struct userinfo * user, char *inbuf) {
@@ -125,7 +148,7 @@ void cli(struct userinfo * user, char *inbuf) {
 		strcpy(sndbuf,"Welcome ");
 		strcat(sndbuf,user->username);
 		strcat(sndbuf,"\nSelect Mode:\n1)Individual Mode\n2)Group Mode\n3)Admin Mode");
-		client(sockfd,sndbuf);
+		client(user,sockfd,inbuf,sndbuf);
 		user->mode = 0;
 		printf("Mode: %d\n",user->mode);
 	}
@@ -135,13 +158,19 @@ void cli(struct userinfo * user, char *inbuf) {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
 			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
-			client(sockfd,sndbuf);
+			client(user,sockfd,inbuf,sndbuf);
 		}
 		else if(inbuf[9] == '2') {
-			strcpy(sndbuf, "Select teammate\n");
-			strcat(sndbuf, "1) 2) 3)..");
-			client(sockfd,sndbuf);
+			strcpy(sndbuf, "Select users\n");
+			for(int i=0;i<numusers;i++) {
+				char t = i + '0';
+				strcat(sndbuf, &t);
+				strcat(sndbuf, ") ");
+				strcat(sndbuf, users[i].username);
+			}
+			client(user,sockfd,inbuf,sndbuf);
 			user->isgrp = true;
+			user->mode = 4;
 		}
 		else {
 			//admin
@@ -159,7 +188,7 @@ void cli(struct userinfo * user, char *inbuf) {
 		strcpy(sndbuf, "Question:\n");
 		// Display question with 1,2,3,4 choices
 		strcat(sndbuf, qtable[user->qtype].qs[num].q);
-		client(sockfd,sndbuf);
+		client(user,sockfd,inbuf,sndbuf);
 		printf("Mode: %d\n",user->mode);
 	}
 	else if(user->mode == 2) {
@@ -173,14 +202,14 @@ void cli(struct userinfo * user, char *inbuf) {
 		}
 		//check qno.answer equals 1
 		strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
-		client(sockfd, sndbuf);
+		client(user,sockfd,inbuf,sndbuf);
 		user->mode = 3;
 		strcpy(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
 		//show answer
 		//user->mode = 1; // and clear qno
 		//strcpy(sndbuf, "Select type of question\n");
 		//strcat(sndbuf, "1) 2) 3)..\n");
-		client(sockfd, sndbuf);
+		client(user,sockfd,inbuf,sndbuf);
 		printf("Mode: %d\n",user->mode);
 	}
 	else if(user->mode == 3) {
@@ -188,17 +217,22 @@ void cli(struct userinfo * user, char *inbuf) {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
 			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
-			client(sockfd, sndbuf);
+			client(user,sockfd,inbuf,sndbuf);
 		}
 		else if(inbuf[9] == 'r') {
 			user->mode = -1;
 			strcpy(sndbuf, "returning to main menu\nPRESS ENTER TO CONTINUE\n");
-		client(sockfd,sndbuf);
+		client(user,sockfd,inbuf,sndbuf);
 		}
 		else if(inbuf[9] == 'q') {
 			strcpy(sndbuf, "<EXIT>");
-			client(sockfd, sndbuf);
+			client(user,sockfd,inbuf,sndbuf);
 		}
+	}
+	else if(user->mode == 4) {
+		int t = inbuf[9] - '0';
+		strcpy(user->tmid, users[t].username);
+		user->mode = 0;
 	}
 
 
