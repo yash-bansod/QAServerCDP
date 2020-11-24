@@ -192,7 +192,7 @@ void server(int consockfd, char* ipa) {
 		int index=0;
 		int found=0;
 		for(int i=0;i<numusers;i++) {
-			if(strcmp(users[i].ip, ipa) == 0) {
+			if(strncmp(users[i].username, reqbuf,7) == 0) {
 				found=1;
 				printf("found\t%d\n",users[i].mode);
 			cli(&users[i], reqbuf, sndbuf);
