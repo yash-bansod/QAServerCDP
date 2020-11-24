@@ -133,7 +133,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
 		//client(user,sockfd,inbuf,sndbuf);
 		user->mode = 3;
-		strcpy(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
+		strcat(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
 		//show answer
 		//user->mode = 1; // and clear qno
 		//strcpy(sndbuf, "Select type of question\n");
