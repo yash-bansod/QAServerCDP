@@ -164,7 +164,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 	else if(user->mode == 4) {
 		int t = inbuf[9] - '0';
 		strcpy(user->tmid, users[t-1].username);
-		user->mode = 0;
+		user->mode = -1;
 		return sndbuf;
 	}
 
