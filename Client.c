@@ -11,6 +11,8 @@
 
 #define MAXIN 300
 #define MAXOUT 300
+
+int flag=0;
 char *makeHeader(char *inbuf, char *userId) {  //7 userid + 1 grpflag + 4 len
 	char header[12];
 	char buf[100];
@@ -41,14 +43,25 @@ char *getreq(char *inbuf, int len) {
   fgets(inbuf,len,stdin); /* read up to a EOL */
 	return inbuf;
 }
+struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,
+	char *serverIP, int portno) {
+  /* Construct an address for remote server */
+  memset((char *) serv_addr, 0, sizeof(struct sockaddr_in));
+  serv_addr->sin_family = AF_INET;
+  inet_aton(serverIP, &(serv_addr->sin_addr));
+  serv_addr->sin_port = htons(portno);
+ }
+
 
 void client(int sockfd, char *userId) {
   int n;
   char sndbuf[MAXIN]; 
   char rcvbuf[MAXOUT];
-  getreq(sndbuf, MAXIN);        /* prompt */
-  printf("This is buff %s\n", sndbuf);
-  while (strlen(sndbuf) > 0) {
+  if(flag==0) {
+	getreq(sndbuf, MAXIN);        /* prompt */
+  memset(sndbuf, 0, MAXIN);
+  //printf("This is buff %s\n", sndbuf);
+  //while (strlen(sndbuf) > 0) {
 	strcpy(sndbuf, makeHeader(sndbuf,userId));
     write(sockfd, sndbuf, strlen(sndbuf)); /* send */
 
@@ -62,20 +75,35 @@ void client(int sockfd, char *userId) {
 	if(strcmp(rcvbuf,"<EXIT>")==0) {
 		exit(0);
 	}
-    getreq(sndbuf, MAXIN);                 /* prompt */
   }
+  close(sockfd);
+    getreq(sndbuf, MAXIN);                 /* prompt */
+	char *serverIP = "0.0.0.0";
+	int portno = 5000;
+	struct sockaddr_in serv_addr;
+	buildServerAddr(&serv_addr, serverIP, portno);
+
+	/* Create a TCP socket */
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+	connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+	strcpy(sndbuf, makeHeader(sndbuf,userId));
+    write(sockfd, sndbuf, strlen(sndbuf)); /* send */
+
+    //printf("Wrote message: %s\n",sndbuf);
+    
+    memset(rcvbuf,0,MAXOUT);               /* clear */
+    n=read(sockfd, rcvbuf, MAXOUT-1);      /* receive */
+    //printf("Received reply: %d",n);
+    
+    write(STDOUT_FILENO, rcvbuf, n);	      /* echo */
+	if(strcmp(rcvbuf,"<EXIT>")==0) {
+		exit(0);
+	}
+  //}
 }
 
 // Server address
-struct hostent *buildServerAddr(struct sockaddr_in *serv_addr,
-	char *serverIP, int portno) {
-  /* Construct an address for remote server */
-  memset((char *) serv_addr, 0, sizeof(struct sockaddr_in));
-  serv_addr->sin_family = AF_INET;
-  inet_aton(serverIP, &(serv_addr->sin_addr));
-  serv_addr->sin_port = htons(portno);
- }
-
 void sendInitMsg(int sockfd, char *userId) {
 	char header[12];
 	memset(header, 0, 12);
@@ -87,13 +115,15 @@ void sendInitMsg(int sockfd, char *userId) {
 	n = write(sockfd, header, strlen(header)); /* send */
 	n = read(sockfd, header, strlen(header)); /* send */
 }
-
+char userId[8];
 int main() {
 	//Client protocol
-	printf("Enter your userid\n");
-	char userId[8];
-	memset(userId,0,8);
-	fgets(userId,8,stdin);
+	if(flag==0) {
+		printf("Enter your userid\n");
+		memset(userId,0,8);
+		fgets(userId,8,stdin);
+		//flag=1;
+	}
 	char *serverIP = "0.0.0.0";
 	int sockfd, portno = 5000;
 	struct sockaddr_in serv_addr;
@@ -104,11 +134,13 @@ int main() {
 
 	/* Connect to server on port */
 	connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
-	printf("Connected to %s:%d\n",serverIP, portno);
+	//printf("Connected to %s:%d\n",serverIP, portno);
 	/* Carry out Client-Server protocol */
 	//sendInitMsg(sockfd, userId);
 	client(sockfd, userId);
 
 	/* Clean up on termination */
 	close(sockfd);
+	flag=1;
+	main();
 }
