@@ -8,9 +8,11 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 
 #define MAXIN 300
 #define MAXOUT 300
+char *serverIP = "14.139.34.11";
 
 int flag=0;
 char *makeHeader(char *inbuf, char *userId) {  //7 userid + 1 grpflag + 4 len
@@ -78,7 +80,6 @@ void client(int sockfd, char *userId) {
   }
   close(sockfd);
     getreq(sndbuf, MAXIN);                 /* prompt */
-	char *serverIP = "14.139.34.11";
 	int portno = 5000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
@@ -115,16 +116,26 @@ void sendInitMsg(int sockfd, char *userId) {
 	n = write(sockfd, header, strlen(header)); /* send */
 	n = read(sockfd, header, strlen(header)); /* send */
 }
+
+void * thrdRead(void * sockfd) {
+	int *consockfd = (int *)sockfd;
+	char buf[MAXIN];
+	memset(buf, 0, MAXIN);
+	while(1) {
+		read(*consockfd, buf, MAXIN);
+	}
+}
+
 char userId[8];
 int main() {
 	//Client protocol
+	while(1) {
 	if(flag==0) {
-		printf("Enter your userid\n");
+		printf("Enter your userid\nNote: User id should be 7 letters exact\n> ");
 		memset(userId,0,8);
 		fgets(userId,8,stdin);
 		//flag=1;
 	}
-	char *serverIP = "14.139.34.11";
 	int sockfd, portno = 5000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
@@ -134,6 +145,10 @@ int main() {
 
 	/* Connect to server on port */
 	connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
+//	if(flag==0) {
+//		pthread_t thrd;
+//		pthread_create(&thrd, NULL, thrdRead, (void *)&sockfd);
+//	}
 	//printf("Connected to %s:%d\n",serverIP, portno);
 	/* Carry out Client-Server protocol */
 	//sendInitMsg(sockfd, userId);
@@ -142,5 +157,5 @@ int main() {
 	/* Clean up on termination */
 	close(sockfd);
 	flag=1;
-	main();
+	}
 }

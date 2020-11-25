@@ -1,3 +1,3 @@
 #!/bin/bash
-gcc -o Client.out Client.c
+gcc -o Client.out Client.c -lpthread
 gcc -o Server.out Server.c

@@ -65,6 +65,7 @@ struct userinfo {
 	int qno;
 	char tmid[10];
 	int fd;
+	char message[300];
 };
 struct userinfo users[5];
 int numusers = 0;
@@ -72,11 +73,18 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 	//Client protocol
 	/* Carry out Client-Server protocol */
 	printf("Username: %s\nip: %s\nLength: %d\nInput: %c\n",user->username, user->ip, inbuf[8], inbuf[9]);
+	if(inbuf[9] == '#') {
+		strcpy(sndbuf, "Your Messages:\n");
+		strcat(sndbuf, user->message);
+		strcat(sndbuf, "> ");
+		memset(user->message, 0, 300);
+		return sndbuf;
+	}
 	if(user->mode == -1) {
 		printf("Mode: %d\n",user->mode);
 		strcpy(sndbuf,"Welcome ");
 		strcat(sndbuf,user->username);
-		strcat(sndbuf,"\nSelect Mode:\n1)Individual Mode\n2)Group Mode\n3)Admin Mode\n");
+		strcat(sndbuf,"\nInstructions: When in group mode, start you message with '@' eg. '@Hello!'; Enter '#' at any point to read all pending messages\nSelect Mode:\n1)Individual Mode\n2)Group Mode\n3)Admin Mode\n> ");
 		user->mode = 0;
 		printf("Mode: %d\n",user->mode);
 		return sndbuf;
@@ -86,7 +94,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		if(inbuf[9] == '1') {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
-			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
+			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n> ");
 		return sndbuf;
 		}
 		else if(inbuf[9] == '2') {
@@ -98,7 +106,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 				strcat(sndbuf, ") ");
 				strcat(sndbuf, users[i].username);
 			}
-			strcat(sndbuf, "\n");
+			strcat(sndbuf, "\n> ");
 			user->isgrp = true;
 			user->mode = 4;
 		return sndbuf;
@@ -120,6 +128,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 			strcpy(sndbuf, "Question:\n");
 			// Display question with 1,2,3,4 choices
 			strcat(sndbuf, qtable[user->qtype].qs[num].q);
+			strcat(sndbuf, "> ");
 			printf("Mode: %d\n",user->mode);
 			return sndbuf;
 		}
@@ -139,7 +148,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 			strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
 			//client(user,sockfd,inbuf,sndbuf);
 			user->mode = 3;
-			strcat(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
+			strcat(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n> ");
 			//show answer
 			//user->mode = 1; // and clear qno
 			//strcpy(sndbuf, "Select type of question\n");
@@ -153,7 +162,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		if(inbuf[9] == 'n') {
 			user->mode = 1;
 			strcpy(sndbuf, "Select type of question\n");
-			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n");
+			strcat(sndbuf, "1)Signals 2)Deadlock 3)Threads 4)Dual Mode of Operation\n> ");
 		return sndbuf;
 		}
 		else if(inbuf[9] == 'r') {
@@ -210,13 +219,22 @@ void server(int consockfd, char* ipa) {
 			if(strncmp(users[i].username, reqbuf,7) == 0) {
 				found=1;
 				printf("found\t%d\n",users[i].mode);
-				cli(&users[i], reqbuf, sndbuf);
+				if(reqbuf[9]!='@')
+					cli(&users[i], reqbuf, sndbuf);
 				if(users[i].isgrp) {
+					printf("In team with: %s", users[i].tmid);
 					if(reqbuf[9] == '@') {
+						printf("TALKING\n");
 						for(int j = 0; j<numusers;j++) {
 							if(strcmp(users[j].username, users[i].tmid)==0) {
-								write(users[j].fd, reqbuf+9, reqbuf[8]);
-								write(users[j].fd, sndbuf, strlen(sndbuf));
+								printf("KKKKK %s\t%s", users[j].username, users[i].tmid);
+								strcpy(users[j].message, users[i].username);
+								strcat(users[j].message, ": ");
+								strcat(users[j].message, reqbuf+10);
+								strcpy(sndbuf, "Sent\n> ");
+								break;
+								//write(users[j].fd, reqbuf+9, reqbuf[8]);
+								//write(users[j].fd, sndbuf, strlen(sndbuf));
 							}
 						}
 					}
@@ -285,7 +303,7 @@ while (1) {
 		server(consockfd, ipa);
 	}
 
-   close(consockfd);
+   //close(consockfd);
   }
 close(lstnsockfd);
 }
