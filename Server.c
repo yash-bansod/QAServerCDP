@@ -110,39 +110,44 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 	}
 	else if(user->mode == 1) {
 		printf("Mode: %d\n",user->mode);
-		user->mode = 2;
 		user->qtype = inbuf[9] - '0';
 		//Draw question from type 1
-		int num = printRandom(qtable[user->qtype].qnum);
-		user->qno = num;
-		//set qno
-		strcpy(sndbuf, "Question:\n");
-		// Display question with 1,2,3,4 choices
-		strcat(sndbuf, qtable[user->qtype].qs[num].q);
-		printf("Mode: %d\n",user->mode);
-		return sndbuf;
+		if(user->qtype > 0) {
+			user->mode = 2;
+			int num = printRandom(qtable[user->qtype].qnum);
+			user->qno = num;
+			//set qno
+			strcpy(sndbuf, "Question:\n");
+			// Display question with 1,2,3,4 choices
+			strcat(sndbuf, qtable[user->qtype].qs[num].q);
+			printf("Mode: %d\n",user->mode);
+			return sndbuf;
+		}
 	}
 	else if(user->mode == 2) {
 		printf("Mode: %d\n",user->mode);
 		int ans = inbuf[9] - '0';
-		if(ans == qtable[user->qtype].qs[user->qno].a) {
-			strcpy(sndbuf, "Correct ");
+		if(ans>0) {
+
+			if(ans == qtable[user->qtype].qs[user->qno].a) {
+				strcpy(sndbuf, "Correct ");
+			}
+			else {
+				strcpy(sndbuf, "Wrong ");
+			}
+			//check qno.answer equals 1
+			strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
+			//client(user,sockfd,inbuf,sndbuf);
+			user->mode = 3;
+			strcat(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
+			//show answer
+			//user->mode = 1; // and clear qno
+			//strcpy(sndbuf, "Select type of question\n");
+			//strcat(sndbuf, "1) 2) 3)..\n");
+			//client(user,sockfd,inbuf,sndbuf);
+			printf("Mode: %d\n",user->mode);
+			return sndbuf;
 		}
-		else {
-			strcpy(sndbuf, "Wrong ");
-		}
-		//check qno.answer equals 1
-		strcat(sndbuf, qtable[user->qtype].qs[user->qno].desc);
-		//client(user,sockfd,inbuf,sndbuf);
-		user->mode = 3;
-		strcat(sndbuf, "\nEnter 'n' for new question, 'q' to quit or 'r' to return to main menu\n");
-		//show answer
-		//user->mode = 1; // and clear qno
-		//strcpy(sndbuf, "Select type of question\n");
-		//strcat(sndbuf, "1) 2) 3)..\n");
-		//client(user,sockfd,inbuf,sndbuf);
-		printf("Mode: %d\n",user->mode);
-		return sndbuf;
 	}
 	else if(user->mode == 3) {
 		if(inbuf[9] == 'n') {
@@ -158,6 +163,7 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		}
 		else if(inbuf[9] == 'q') {
 			strcpy(sndbuf, "<EXIT>");
+			user->mode = -1;
 		return sndbuf;
 		}
 	}
@@ -170,7 +176,9 @@ char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 		strcpy(sndbuf, "PRESS n TO CONTINUE\n");
 		return sndbuf;
 	}
-
+	printf("Received nil\n");
+	strcpy(sndbuf,"$> ");
+	return sndbuf;
 
 	/* Clean up on termination */
 }
@@ -227,8 +235,8 @@ void server(int consockfd, char* ipa) {
 		}
 	}
     if (n <= 0) return;
-	printf("%s\n",sndbuf);
-    n = write(consockfd, sndbuf, strlen(sndbuf)); /* echo*/
+	printf("Sending:\n%s\n",sndbuf);
+    write(consockfd, sndbuf, strlen(sndbuf)); /* echo*/
   }
 }
 struct sockstruct{

@@ -35,19 +35,21 @@ char *makeHeader(char *inbuf, char *userId) {  //7 userid + 1 grpflag + 4 len
 	return inbuf;
 }
 
-char *getreq(char *inbuf, char *userId, int len) {
+char *getreq(char *inbuf, int len) {
   /* Get request char stream */
   memset(inbuf,0,len);          /* clear for good measure */
   fgets(inbuf,len,stdin); /* read up to a EOL */
-	return makeHeader(inbuf, userId);
+	return inbuf;
 }
 
 void client(int sockfd, char *userId) {
   int n;
   char sndbuf[MAXIN]; 
   char rcvbuf[MAXOUT];
-  getreq(sndbuf,userId, MAXIN);        /* prompt */
+  getreq(sndbuf, MAXIN);        /* prompt */
+  printf("This is buff %s\n", sndbuf);
   while (strlen(sndbuf) > 0) {
+	strcpy(sndbuf, makeHeader(sndbuf,userId));
     write(sockfd, sndbuf, strlen(sndbuf)); /* send */
 
     //printf("Wrote message: %s\n",sndbuf);
@@ -60,7 +62,7 @@ void client(int sockfd, char *userId) {
 	if(strcmp(rcvbuf,"<EXIT>")==0) {
 		exit(0);
 	}
-    getreq(sndbuf,userId, MAXIN);                 /* prompt */
+    getreq(sndbuf, MAXIN);                 /* prompt */
   }
 }
 
@@ -92,7 +94,7 @@ int main() {
 	char userId[8];
 	memset(userId,0,8);
 	fgets(userId,8,stdin);
-	char *serverIP = "14.139.34.11";
+	char *serverIP = "0.0.0.0";
 	int sockfd, portno = 5000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
@@ -104,7 +106,7 @@ int main() {
 	connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr));
 	printf("Connected to %s:%d\n",serverIP, portno);
 	/* Carry out Client-Server protocol */
-	sendInitMsg(sockfd, userId);
+	//sendInitMsg(sockfd, userId);
 	client(sockfd, userId);
 
 	/* Clean up on termination */
