@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <errno.h>
 #define MAXREQ 300
-#define MAXQUEUE 5
+#define MAXQUEUE 20
 int printRandom(int upper) {
 	int num = (rand() % upper);
 		//printf("All wall %d\n",num);
@@ -67,7 +67,7 @@ struct userinfo {
 	int fd;
 	char message[300];
 };
-struct userinfo users[5];
+struct userinfo users[1000];
 int numusers = 0;
 char* cli(struct userinfo * user, char *inbuf, char *sndbuf) {
 	//Client protocol
