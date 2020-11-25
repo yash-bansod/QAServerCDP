@@ -12,7 +12,6 @@
 
 #define MAXIN 300
 #define MAXOUT 300
-char *serverIP = "14.139.34.11";
 
 int flag=0;
 char *makeHeader(char *inbuf, char *userId) {  //7 userid + 1 grpflag + 4 len
@@ -80,6 +79,7 @@ void client(int sockfd, char *userId) {
   }
   close(sockfd);
     getreq(sndbuf, MAXIN);                 /* prompt */
+	char *serverIP = "14.139.34.11";
 	int portno = 5000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
@@ -136,6 +136,7 @@ int main() {
 		fgets(userId,8,stdin);
 		//flag=1;
 	}
+	char *serverIP = "14.139.34.11";
 	int sockfd, portno = 5000;
 	struct sockaddr_in serv_addr;
 	buildServerAddr(&serv_addr, serverIP, portno);
